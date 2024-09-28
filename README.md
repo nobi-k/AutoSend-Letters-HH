@@ -78,3 +78,8 @@ const coverLetterText = `Добрый день!
 
 ## Языки:
 - JavaScript
+
+- 
+## Ссылка на проект:
+
+https://github.com/nobi-k/AutoSend-Letters-HH
