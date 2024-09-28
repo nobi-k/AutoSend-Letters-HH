@@ -1,6 +1,6 @@
 // Храним ссылки на вакансии, на которые уже отправлен отклик
 let respondedVacancies = new Set();
-
+// Сделано nobi-k
 // Текст сопроводительного письма
 const coverLetterText = `Добрый день! Посмотрите резюме!.`;
 
@@ -53,7 +53,7 @@ const runTasks = async () => {
 
         // Ждем 2 секунды, чтобы проверить результат
         await wait(2000);
-
+        // Сделано nobi-k
         // Проверяем наличие модалки с предупреждением о другой стране
         const relocationWarningButton = document.querySelector('[data-qa="relocation-warning-confirm"]');
         if (relocationWarningButton) {
@@ -88,7 +88,7 @@ const runTasks = async () => {
             } else {
                 console.log('Кнопка "Откликнуться" в модальном окне не найдена');
             }
-
+            // Сделано nobi-k
             // Ждем окончания отправки
             await wait(2000);
 
@@ -110,7 +110,7 @@ const runTasks = async () => {
 
         // Ждем загрузки новой страницы
         await wait(4000);
-
+        // Сделано nobi-k
         // После загрузки продолжаем обработку с новой страницы
         runTasks();
     } else {
