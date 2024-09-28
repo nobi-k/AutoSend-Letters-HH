@@ -59,7 +59,7 @@ const coverLetterText = `Добрый день!
   3. После этого перезапустить скрипт, вернувшись на страницу с вакансиями.
 
 ## Как установить и запустить скрипт
-### Установка через расширение Scripty (рекомендуется):[Scripty]([https://t.me/kopirajchu](https://chromewebstore.google.com/detail/scripty-javascript-inject/milkbiaeapddfnpenedfgbfdacpbcbam))
+### Установка через расширение Scripty (рекомендуется): [Scripty]([https://t.me/kopirajchu](https://chromewebstore.google.com/detail/scripty-javascript-inject/milkbiaeapddfnpenedfgbfdacpbcbam).
 1. Установите расширение для Chrome — Scripty;
 2. **Автоматическая установка**: добавьте скрипт через расширение: https://scripty.abhisheksatre.com/#/share/script_1727348873487
 3. После откройте страницу с вакансиями на hh, установите фильтры и запустите скрипт.
