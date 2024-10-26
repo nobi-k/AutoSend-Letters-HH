@@ -1,8 +1,8 @@
 // Храним ссылки на вакансии, на которые уже отправлен отклик
 let respondedVacancies = new Set();
-// Сделано nobi-k
+
 // Текст сопроводительного письма
-const coverLetterText = `Добрый день! Посмотрите резюме!.`;
+const coverLetterText = `Добрый день!Я заинтересован(а) в этой позиции и уверен(а), что мой опыт и навыки соответствуют требованиям вакансии. Буду рад(а) обсудить детали на собеседовании.С уважением, [Ваше имя]`;
 
 const triggerInputChange = (element, value) => {
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
@@ -13,6 +13,18 @@ const triggerInputChange = (element, value) => {
 const wait = (ms) => new Promise(res => setTimeout(res, ms));
 
 const runTasks = async () => {
+    // Проверяем наличие кнопки "Показать ещё"
+    const showMoreButton = document.querySelector('[data-qa="applicant-index-search-all-results-button"]');
+    if (showMoreButton) {
+        console.log('Найдена кнопка "Показать ещё". Нажимаем...');
+        showMoreButton.click();
+        // Ждем загрузки новых вакансий
+        await wait(4000);
+        // Повторяем функцию после обновления страницы
+        runTasks();
+        return; // Выходим из текущей функции, чтобы избежать дальнейшего выполнения
+    }
+
     const buttons = document.querySelectorAll('[data-qa="vacancy-serp__vacancy_response"]');
 
     if (buttons.length === 0) {
@@ -53,7 +65,7 @@ const runTasks = async () => {
 
         // Ждем 2 секунды, чтобы проверить результат
         await wait(2000);
-        // Сделано nobi-k
+
         // Проверяем наличие модалки с предупреждением о другой стране
         const relocationWarningButton = document.querySelector('[data-qa="relocation-warning-confirm"]');
         if (relocationWarningButton) {
@@ -88,7 +100,7 @@ const runTasks = async () => {
             } else {
                 console.log('Кнопка "Откликнуться" в модальном окне не найдена');
             }
-            // Сделано nobi-k
+
             // Ждем окончания отправки
             await wait(2000);
 
@@ -110,7 +122,7 @@ const runTasks = async () => {
 
         // Ждем загрузки новой страницы
         await wait(4000);
-        // Сделано nobi-k
+
         // После загрузки продолжаем обработку с новой страницы
         runTasks();
     } else {
