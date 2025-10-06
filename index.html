@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Автоматизация откликов на вакансии HeadHunter - современный и удобный инструмент для поиска работы">
+    <meta name="keywords" content="HeadHunter, автоматизация, поиск работы, отклики, вакансии">
+    <meta name="author" content="nobi-k">
+    
+    <title>HeadHunter Auto Response - Автоматизация откликов</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/main.css">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="HeadHunter Auto Response">
+    <meta property="og:description" content="Автоматизация откликов на вакансии HeadHunter">
+    <meta property="og:type" content="website">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-logo">
+                <span style="font-size: 3rem;">🚀</span>
+                <h1>HeadHunter Auto Response</h1>
+            </div>
+            <p class="header-subtitle">Автоматизация откликов на вакансии HeadHunter</p>
+        </header>
+
+        <!-- Alert -->
+        <div class="alert alert-info">
+            <span class="alert-icon">ℹ️</span>
+            <div>
+                <strong>Важно:</strong> Этот скрипт предназначен для автоматизации процесса отправки откликов. 
+                Используйте его ответственно и в соответствии с правилами HeadHunter.
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Configuration Panel -->
+            <div class="card config-panel">
+                <div class="card-header">
+                    <span class="card-icon">⚙️</span>
+                    <h2>Настройки</h2>
+                </div>
+                
+                <form id="configForm">
+                    <div class="form-group">
+                        <label class="form-label" for="coverLetter">
+                            Сопроводительное письмо
+                        </label>
+                        <textarea 
+                            class="form-control" 
+                            id="coverLetter" 
+                            rows="5" 
+                            placeholder="Введите текст сопроводительного письма..."
+                        >Добрый день!
+
+Я заинтересован(а) в этой позиции и уверен(а), что мой опыт и навыки соответствуют требованиям вакансии. Буду рад(а) обсудить детали на собеседовании.
+
+С уважением!</textarea>
+                        <small class="form-hint">
+                            Это письмо будет автоматически добавлено к каждому отклику
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="waitTime">
+                            Задержка между откликами (мс)
+                        </label>
+                        <input 
+                            type="number" 
+                            class="form-control" 
+                            id="waitTime" 
+                            value="1000" 
+                            min="500" 
+                            max="5000"
+                            step="100"
+                        >
+                        <small class="form-hint">
+                            Рекомендуется: 1000-2000 мс (1-2 секунды)
+                        </small>
+                    </div>
+
+                    <button type="button" class="btn btn-success btn-block" id="generateBtn">
+                        <span>🔧</span>
+                        Сгенерировать скрипт
+                    </button>
+                </form>
+            </div>
+
+            <!-- Script Display -->
+            <div class="card script-display">
+                <div class="card-header">
+                    <span class="card-icon">📝</span>
+                    <h2>Готовый скрипт</h2>
+                </div>
+                
+                <div style="position: relative;">
+                    <button class="copy-btn" id="copyBtn">
+                        <span id="copyBtnText">📋 Копировать</span>
+                    </button>
+                    <pre class="script-code" id="scriptCode">// Нажмите "Сгенерировать скрипт" для создания кода</pre>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary btn-block" id="copyBtn2">
+                        <span>📋</span>
+                        Скопировать скрипт
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card instructions">
+            <div class="card-header">
+                <span class="card-icon">📖</span>
+                <h2>Инструкция по использованию</h2>
+            </div>
+            
+            <div class="instruction-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Настройте параметры</h3>
+                        <p>Введите текст сопроводительного письма и настройте задержки между откликами</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Сгенерируйте скрипт</h3>
+                        <p>Нажмите кнопку "Сгенерировать скрипт" для создания персонализированного кода</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Скопируйте код</h3>
+                        <p>Используйте кнопку "Копировать", чтобы скопировать скрипт в буфер обмена</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Откройте HeadHunter</h3>
+                        <p>Перейдите на страницу поиска вакансий на hh.ru и установите нужные фильтры</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Откройте консоль</h3>
+                        <p>Нажмите F12 или Ctrl+Shift+I (Cmd+Option+I на Mac) для открытия консоли браузера</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h3>Вставьте и запустите</h3>
+                        <p>Вставьте скопированный код в консоль и нажмите Enter. Скрипт начнет работу!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="card features">
+            <div class="card-header">
+                <span class="card-icon">✨</span>
+                <h2>Возможности</h2>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-content">
+                        <h3>Автоматизация</h3>
+                        <p>Автоматическая отправка откликов на все подходящие вакансии</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">📝</div>
+                    <div class="feature-content">
+                        <h3>Сопроводительные письма</h3>
+                        <p>Автоматическое добавление вашего письма к каждому отклику</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🌍</div>
+                    <div class="feature-content">
+                        <h3>Вакансии за границей</h3>
+                        <p>Автоматическое подтверждение откликов на зарубежные вакансии</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-content">
+                        <h3>Статистика</h3>
+                        <p>Отслеживание количества обработанных и отправленных откликов</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🔄</div>
+                    <div class="feature-content">
+                        <h3>Многостраничность</h3>
+                        <p>Автоматический переход на следующие страницы с вакансиями</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🛡️</div>
+                    <div class="feature-content">
+                        <h3>Безопасность</h3>
+                        <p>Исключение дублирования откликов на одну и ту же вакансию</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-content">
+                        <h3>Настройка скорости</h3>
+                        <p>Гибкая настройка задержек между действиями</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">📱</div>
+                    <div class="feature-content">
+                        <h3>Логирование</h3>
+                        <p>Подробные логи работы скрипта в консоли браузера</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning -->
+        <div class="alert alert-warning">
+            <span class="alert-icon">⚠️</span>
+            <div>
+                <strong>Внимание:</strong> Скрипт не распознает тесты и анкеты. Если вакансия требует 
+                заполнения тестового задания, необходимо добавить её в чёрный список и заполнить вручную.
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="https://github.com/nobi-k/AutoSend-Letters-HH" target="_blank" class="footer-link">
+                    GitHub
+                </a>
+                <a href="https://t.me/kopirajchu" target="_blank" class="footer-link">
+                    Telegram
+                </a>
+                <a href="https://vk.com/smmolnikov" target="_blank" class="footer-link">
+                    VK
+                </a>
+            </div>
+            <p>&copy; 2024 AutoSend Letters HeadHunter by <strong>nobi-k</strong></p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">
+                Используйте скрипт ответственно и в соответствии с правилами HeadHunter
+            </p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/app.js"></script>
+</body>
+</html>
