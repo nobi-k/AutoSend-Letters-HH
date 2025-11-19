@@ -1,3 +1,18 @@
+// ====== Яндекс Метрика ======
+(function(m,e,t,r,i,k,a){
+    m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+    m[i].l=1*new Date();
+    for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+})(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105410389', 'ym');
+
+ym(105410389, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+
+// Отслеживаем запуск скрипта
+ym(105410389, 'reachGoal', 'script_started');
+console.log('Яндекс Метрика инициализирована');
+// ====== /Яндекс Метрика ======
+
 // Храним ссылки на вакансии, на которые уже отправлен отклик
 let respondedVacancies = new Set();
 
@@ -71,6 +86,8 @@ const runTasks = async () => {
         if (relocationWarningButton) {
             relocationWarningButton.click();
             console.log('Подтвердили отклик на вакансию в другой стране.');
+            // Отслеживаем отклик на вакансию за границей
+            ym(105410389, 'reachGoal', 'relocation_vacancy');
             await wait(1000); // Ждем для завершения подтверждения
         }
 
@@ -97,6 +114,8 @@ const runTasks = async () => {
             if (modalSubmitButton) {
                 modalSubmitButton.click();
                 console.log('Нажали кнопку "Откликнуться" в модалке');
+                // Отслеживаем отклик в Яндекс Метрике
+                ym(105410389, 'reachGoal', 'vacancy_response_sent');
             } else {
                 console.log('Кнопка "Откликнуться" в модальном окне не найдена');
             }
@@ -119,6 +138,8 @@ const runTasks = async () => {
     if (nextPageButton) {
         console.log('Переход на следующую страницу...');
         nextPageButton.click();
+        // Отслеживаем переход на следующую страницу
+        ym(105410389, 'reachGoal', 'next_page');
 
         // Ждем загрузки новой страницы
         await wait(4000);
@@ -127,6 +148,8 @@ const runTasks = async () => {
         runTasks();
     } else {
         console.log('Все вакансии обработаны.');
+        // Отслеживаем завершение работы скрипта
+        ym(105410389, 'reachGoal', 'script_completed');
     }
 };
 
