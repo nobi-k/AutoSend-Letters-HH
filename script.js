@@ -1,134 +1,270 @@
-// Храним ссылки на вакансии, на которые уже отправлен отклик
-let respondedVacancies = new Set();
+/* =====================================================================
+ *  AutoSend Letters HH — авто-отклики на hh.ru (standalone-скрипт)
+ *  Вставьте этот код в консоль браузера (F12) на странице с вакансиями.
+ *  Репозиторий: https://github.com/nobi-k/AutoSend-Letters-HH
+ *  Версия: 2.0 (актуально на 2026)
+ * ===================================================================== */
+(() => {
+  'use strict';
 
-// Текст сопроводительного письма
-const coverLetterText = `Добрый день!Я заинтересован(а) в этой позиции и уверен(а), что мой опыт и навыки соответствуют требованиям вакансии. Буду рад(а) обсудить детали на собеседовании.С уважением, [Ваше имя]`;
+  // Защита от повторного запуска
+  if (window.__hhAutoSendRunning) {
+    console.warn('[HH] Скрипт уже запущен. Остановите его кнопкой «Стоп».');
+    return;
+  }
 
-const triggerInputChange = (element, value) => {
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
-    nativeInputValueSetter.call(element, value);
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-};
+  /* ------------------------------------------------------------------ *
+   *  НАСТРОЙКИ — отредактируйте под себя
+   * ------------------------------------------------------------------ */
+  const CONFIG = {
+    // Текст сопроводительного письма
+    coverLetter:
+      'Добрый день!\n' +
+      'Меня заинтересовала эта позиция — мой опыт и навыки хорошо ' +
+      'подходят под требования. Буду рад обсудить детали на собеседовании.\n\n' +
+      'С уважением, [Ваше имя]',
 
-const wait = (ms) => new Promise(res => setTimeout(res, ms));
+    sendCoverLetter: true,        // добавлять ли сопроводительное письмо
+    maxResponses: 200,            // максимум откликов за один запуск
+    skipVacanciesWithTests: true, // пропускать вакансии с тестами/доп.вопросами
+    confirmRelocation: true,      // подтверждать отклик на вакансии в др. странах
+    autoNextPage: true,           // переходить на следующую страницу автоматически
 
-const runTasks = async () => {
-    // Проверяем наличие кнопки "Показать ещё"
-    const showMoreButton = document.querySelector('[data-qa="applicant-index-search-all-results-button"]');
-    if (showMoreButton) {
-        console.log('Найдена кнопка "Показать ещё". Нажимаем...');
-        showMoreButton.click();
-        // Ждем загрузки новых вакансий
-        await wait(4000);
-        // Повторяем функцию после обновления страницы
-        runTasks();
-        return; // Выходим из текущей функции, чтобы избежать дальнейшего выполнения
+    // Чёрный список — вакансия пропускается, если её название содержит
+    // любое из этих слов (регистр не важен). Пример: ['продажи', 'ночь']
+    blacklist: [],
+
+    // Случайные паузы между откликами (мс) — имитация поведения человека
+    delayMin: 1800,
+    delayMax: 4200,
+  };
+  /* ------------------------------------------------------------------ */
+
+  const STORAGE_KEY = 'hh_autosend_responded';
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const rand = (a, b) => Math.floor(a + Math.random() * (b - a));
+  const human = () => wait(rand(CONFIG.delayMin, CONFIG.delayMax));
+
+  // Память об уже обработанных вакансиях (переживает перезагрузку страницы)
+  const responded = new Set(
+    JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  );
+  const remember = (id) => {
+    responded.add(id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...responded]));
+  };
+
+  const state = { running: true, sent: 0, skipped: 0 };
+  window.__hhAutoSendRunning = true;
+
+  /* ------------------------------------------------------------------ *
+   *  Плавающая панель управления
+   * ------------------------------------------------------------------ */
+  const panel = document.createElement('div');
+  panel.style.cssText = [
+    'position:fixed', 'z-index:2147483647', 'right:20px', 'bottom:20px',
+    'background:#0a0a0f', 'color:#fff',
+    'font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif',
+    'padding:14px 16px', 'border-radius:14px',
+    'box-shadow:0 8px 30px rgba(0,0,0,.4)',
+    'min-width:220px', 'border:1px solid rgba(255,255,255,.08)',
+  ].join(';');
+  panel.innerHTML =
+    '<div style="font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">' +
+    '<span style="width:8px;height:8px;border-radius:50%;background:#20d335;display:inline-block"></span>' +
+    'HH Авто-отклик</div>' +
+    '<div id="hh-stat" style="opacity:.85;margin-bottom:10px">Запуск…</div>' +
+    '<button id="hh-stop" style="width:100%;cursor:pointer;background:#20d335;color:#0a0a0f;' +
+    'border:0;border-radius:9px;padding:8px;font-weight:600">Стоп</button>';
+  document.body.appendChild(panel);
+
+  const statEl = panel.querySelector('#hh-stat');
+  const setStat = (msg) => {
+    statEl.innerHTML =
+      'Отправлено: <b>' + state.sent + '</b> · Пропущено: <b>' +
+      state.skipped + '</b><br><span style="opacity:.7">' + msg + '</span>';
+  };
+  panel.querySelector('#hh-stop').onclick = () => stop('Остановлено вручную');
+
+  function stop(reason) {
+    state.running = false;
+    window.__hhAutoSendRunning = false;
+    setStat(reason);
+    const btn = panel.querySelector('#hh-stop');
+    btn.textContent = 'Закрыть';
+    btn.onclick = () => panel.remove();
+    console.log('[HH] ' + reason +
+      '. Итого отправлено: ' + state.sent + ', пропущено: ' + state.skipped);
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  Утилиты
+   * ------------------------------------------------------------------ */
+  const q = (sel, root = document) => root.querySelector(sel);
+  const qa = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+  // Установить значение в textarea/input так, чтобы React/Vue это заметили
+  const setNativeValue = (el, value) => {
+    const proto = el.tagName === 'TEXTAREA'
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  // Дождаться появления элемента (с таймаутом)
+  const waitFor = (sel, timeout = 4000) =>
+    new Promise((resolve) => {
+      const found = q(sel);
+      if (found) return resolve(found);
+      const obs = new MutationObserver(() => {
+        const el = q(sel);
+        if (el) { obs.disconnect(); resolve(el); }
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
+      setTimeout(() => { obs.disconnect(); resolve(null); }, timeout);
+    });
+
+  const inBlacklist = (title) =>
+    !!title && CONFIG.blacklist.some((w) =>
+      title.toLowerCase().includes(w.toLowerCase()));
+
+  // Карточка вакансии вокруг кнопки отклика — для названия и id
+  const cardOf = (btn) =>
+    btn.closest('[data-qa="vacancy-serp__vacancy"]') ||
+    btn.closest('article') || btn.parentElement;
+
+  const titleOf = (btn) => {
+    const card = cardOf(btn);
+    const t = card && (q('[data-qa="serp-item__title"]', card) ||
+      q('[data-qa="serp-item__title-text"]', card) || q('h2 a', card));
+    return t ? t.textContent.trim() : '';
+  };
+
+  const idOf = (btn) => {
+    const card = cardOf(btn);
+    const link = card && (q('[data-qa="serp-item__title"]', card) ||
+      q('a[href*="/vacancy/"]', card));
+    const href = (link && link.href) || btn.getAttribute('href') || '';
+    const m = href.match(/\/vacancy\/(\d+)/);
+    return m ? m[1] : href || Math.random().toString(36).slice(2);
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  Обработка одной кнопки отклика
+   * ------------------------------------------------------------------ */
+  async function processButton(btn) {
+    const id = idOf(btn);
+    const title = titleOf(btn);
+
+    if (responded.has(id)) return 'dup';
+    if (inBlacklist(title)) {
+      console.log('[HH] Чёрный список → пропуск: ' + title);
+      return 'skip';
     }
 
-    const buttons = document.querySelectorAll('[data-qa="vacancy-serp__vacancy_response"]');
+    setStat('Откликаюсь: ' + (title || 'вакансия').slice(0, 40));
+    btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    btn.click();
 
-    if (buttons.length === 0) {
-        console.log('Не найдено кнопок для отклика.');
-        return;
+    // Подтверждение релокации (вакансия в другой стране)
+    const reloc = await waitFor('[data-qa="relocation-warning-confirm"]', 1500);
+    if (reloc) {
+      if (!CONFIG.confirmRelocation) { remember(id); return 'skip'; }
+      reloc.click();
+      await wait(800);
     }
 
-    for (let i = 0; i < buttons.length; i++) {
-        const button = buttons[i];
-        const vacancyLink = button.href; // Получаем ссылку на вакансию
+    // Ждём попап отклика
+    const popup = await waitFor(
+      '[data-qa="vacancy-response-popup-form-letter-input"],' +
+      '[data-qa="vacancy-response-submit-popup"]', 3500);
 
-        // Проверяем, отправляли ли мы уже отклик на эту вакансию
-        if (respondedVacancies.has(vacancyLink)) {
-            console.log(`Пропускаем вакансию ${vacancyLink}, отклик уже был отправлен.`);
-            continue; // Пропускаем, если уже был отклик
+    // Вакансия с тестом / доп.вопросами
+    const hasTest =
+      q('[data-qa="task-body"]') ||
+      /\/applicant\/vacancy_response/.test(location.pathname) ||
+      q('[data-qa="vacancy-response-test-name"]');
+
+    if (!popup || (CONFIG.skipVacanciesWithTests && hasTest)) {
+      remember(id);
+      console.log('[HH] Пропуск (тест/нет попапа): ' + (title || id));
+      const close = q('[data-qa="response-popup-close"], [data-qa="modal-close"], [data-qa="bloko-modal-close"]');
+      if (close) (close.closest('button,[role="button"]') || close).click();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+      return 'skip';
+    }
+
+    // Сопроводительное письмо
+    if (CONFIG.sendCoverLetter) {
+      // HH Magritte: тумблер письма теперь data-qa="add-cover-letter"
+      const toggle = q('[data-qa="add-cover-letter"]') ||
+        q('[data-qa="vacancy-response-letter-toggle"]');
+      if (toggle && !q('[data-qa="vacancy-response-popup-form-letter-input"]')) {
+        toggle.click();
+        await wait(500);
+      }
+      const input = q('[data-qa="vacancy-response-popup-form-letter-input"]');
+      if (input) setNativeValue(input, CONFIG.coverLetter);
+    }
+
+    // Отправка
+    const submit = await waitFor('[data-qa="vacancy-response-submit-popup"]', 2000);
+    if (submit) {
+      submit.click();
+      await wait(1500);
+      remember(id);
+      return 'sent';
+    }
+
+    remember(id);
+    return 'skip';
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  Главный цикл
+   * ------------------------------------------------------------------ */
+  async function run() {
+    while (state.running) {
+      // Кнопка «Показать все вакансии»
+      const showAll = q('[data-qa="applicant-index-search-all-results-button"]');
+      if (showAll) { showAll.click(); await wait(3000); continue; }
+
+      const buttons = qa('[data-qa="vacancy-serp__vacancy_response"]')
+        .filter((b) => !b.disabled);
+
+      if (buttons.length === 0) { setStat('Кнопок отклика нет.'); break; }
+
+      let didSomething = false;
+      for (const btn of buttons) {
+        if (!state.running) return;
+        if (state.sent >= CONFIG.maxResponses) {
+          return stop('Достигнут лимит (' + CONFIG.maxResponses + ')');
         }
 
-        console.log(`Обработка кнопки ${i + 1} из ${buttons.length}`, button);
-
-        // Подключаем слушатель для определения открытия модального окна
-        let modalOpened = false;
-
-        const modalObserver = new MutationObserver((mutations) => {
-            for (let mutation of mutations) {
-                if (mutation.type === 'childList' && document.querySelector('[data-qa="vacancy-response-submit-popup"]')) {
-                    modalOpened = true;
-                    console.log('Модальное окно появилось.');
-                    break;
-                }
-            }
-        });
-
-        // Наблюдаем за изменениями в теле документа (для отслеживания появления модалки)
-        modalObserver.observe(document.body, { childList: true, subtree: true });
-
-        // Нажимаем на кнопку отклика
-        button.click();
-
-        // Ждем 2 секунды, чтобы проверить результат
-        await wait(2000);
-
-        // Проверяем наличие модалки с предупреждением о другой стране
-        const relocationWarningButton = document.querySelector('[data-qa="relocation-warning-confirm"]');
-        if (relocationWarningButton) {
-            relocationWarningButton.click();
-            console.log('Подтвердили отклик на вакансию в другой стране.');
-            await wait(1000); // Ждем для завершения подтверждения
+        const res = await processButton(btn);
+        if (res === 'sent') {
+          state.sent++; didSomething = true; setStat('Отправлено ✔'); await human();
+        } else if (res === 'skip') {
+          state.skipped++; didSomething = true; await wait(600);
         }
+        // 'dup' — молча пропускаем
+      }
 
-        // Если модалка появилась, продолжаем обработку
-        if (modalOpened) {
-            modalObserver.disconnect();
-
-            // Проверяем наличие кнопки для добавления сопроводительного письма
-            const addLetterButton = document.querySelector('[data-qa="vacancy-response-letter-toggle"]');
-            if (addLetterButton && !document.querySelector('[data-qa="vacancy-response-popup-form-letter-input"]')) {
-                addLetterButton.click(); // Нажимаем "Добавить сопроводительное письмо"
-                await wait(500); // Ждем открытия поля
-            }
-
-            // Находим поле для ввода сопроводительного письма
-            const coverLetterInput = document.querySelector('[data-qa="vacancy-response-popup-form-letter-input"]');
-            if (coverLetterInput) {
-                triggerInputChange(coverLetterInput, coverLetterText);
-                console.log('Добавлено сопроводительное письмо.');
-            }
-
-            // Нажимаем кнопку "Откликнуться" в модалке, если она есть
-            const modalSubmitButton = document.querySelector('[data-qa="vacancy-response-submit-popup"]');
-            if (modalSubmitButton) {
-                modalSubmitButton.click();
-                console.log('Нажали кнопку "Откликнуться" в модалке');
-            } else {
-                console.log('Кнопка "Откликнуться" в модальном окне не найдена');
-            }
-
-            // Ждем окончания отправки
-            await wait(2000);
-
-            // Добавляем вакансию в список уже откликнутых
-            respondedVacancies.add(vacancyLink);
-        } else {
-            console.log('Модальное окно не появилось, пропускаем эту вакансию.');
-        }
-
-        modalObserver.disconnect();
-        await wait(1000); // Пауза перед следующей ваканцией
+      // Следующая страница
+      const next = q('[data-qa="pager-next"]');
+      if (CONFIG.autoNextPage && next) {
+        setStat('Следующая страница…');
+        next.click();
+        await wait(3500);
+      } else {
+        break;
+      }
     }
+    if (state.running) stop('Все вакансии обработаны 🎉');
+  }
 
-    // Проверяем, есть ли следующая страница
-    const nextPageButton = document.querySelector('[data-qa="pager-next"]');
-    if (nextPageButton) {
-        console.log('Переход на следующую страницу...');
-        nextPageButton.click();
-
-        // Ждем загрузки новой страницы
-        await wait(4000);
-
-        // После загрузки продолжаем обработку с новой страницы
-        runTasks();
-    } else {
-        console.log('Все вакансии обработаны.');
-    }
-};
-
-// Запуск задачи
-runTasks();
+  console.log('[HH] Авто-отклик запущен. Управление — панелью в правом нижнем углу.');
+  run().catch((e) => { console.error(e); stop('Ошибка: ' + e.message); });
+})();
